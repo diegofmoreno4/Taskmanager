@@ -19,7 +19,7 @@
       <!-- Search -->
       <div class="sidebar-search">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="global-search" class="search-input" placeholder="Buscar tareas... (Ctrl+K)" autocomplete="off" />
+        <input id="global-search" class="search-input" placeholder="Buscar tareas... (Ctrl+K)" autocomplete="off" spellcheck="false" />
       </div>
       <div id="search-results" class="search-results hidden"></div>
 
@@ -268,11 +268,11 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label">Título *</label>
-          <input id="f-title" class="input-base" placeholder="¿Qué hay que hacer?" />
+          <input id="f-title" class="input-base" placeholder="¿Qué hay que hacer?" autocomplete="off" />
         </div>
         <div class="form-group">
           <label class="form-label">Descripción</label>
-          <textarea id="f-desc" class="input-base" rows="3" placeholder="Contexto, detalles, criterios de aceptación..." style="resize:vertical"></textarea>
+          <textarea id="f-desc" class="input-base" rows="3" placeholder="Contexto, detalles, criterios de aceptación..." style="resize:vertical" autocomplete="off"></textarea>
         </div>
         <div class="form-group">
           <label class="form-label">Cliente</label>
@@ -281,7 +281,7 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
         </div>
         <div class="form-group">
           <label class="form-label">URL de referencia</label>
-          <input id="f-url" class="input-base" type="url" placeholder="https://..." />
+          <input id="f-url" class="input-base" type="url" placeholder="https://..." autocomplete="off" />
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -310,7 +310,7 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
           <label class="form-label">Subtareas</label>
           <div id="f-subtasks-list"></div>
           <div class="subtask-add-row">
-            <input id="f-subtask-input" class="input-base" placeholder="Agregar subtarea..." />
+            <input id="f-subtask-input" class="input-base" placeholder="Agregar subtarea..." autocomplete="off" />
             <button type="button" class="btn-ghost btn-sm" id="btn-add-subtask">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>

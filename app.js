@@ -855,7 +855,7 @@ function openModal(task, defaults={}) {
   document.getElementById('btn-delete-task').style.display = isNew?'none':''
 
   // Client dropdown
-  const client = task?.accountName || defaults.accountName || (!task ? getRecentClient() : '')
+  const client = task?.accountName || defaults.accountName || ''
   const isOther = client && !CLIENTS.includes(client)
   document.getElementById('f-client').innerHTML =
     `<option value="">— Sin cliente —</option>` +
