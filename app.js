@@ -1136,7 +1136,11 @@ document.addEventListener('click', e => {
   // Close cal detail
   if (el.closest('#btn-cal-detail-close')) {
     state.calSelected = null
-    renderCalendario()
+    const topRow = document.getElementById('cal-top-row')
+    const detail = document.getElementById('cal-detail')
+    topRow.classList.remove('has-detail')
+    detail.classList.add('hidden')
+    document.querySelectorAll('.cal-cell.selected').forEach(c => c.classList.remove('selected'))
     return
   }
 

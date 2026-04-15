@@ -645,12 +645,6 @@ select.input-base {
 .task-card.drag-below { border-bottom: 2px solid var(--accent-pink); margin-bottom: -1px; }
 
 /* ── Calendario ─────────────────────────────────────────── */
-.cal-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-}
 .cal-nav {
   display: flex;
   align-items: center;
