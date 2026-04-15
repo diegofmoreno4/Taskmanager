@@ -139,6 +139,7 @@ function mapTaskFromDB(r) {
     assigneeIds: r.assignee_ids || [], assigneeId: r.assignee_id,
     meetingNoteId: r.meeting_note_id,
     gcalEventId: r.gcal_event_id || null,
+    sortOrder: r.sort_order ?? 0,
     createdAt: r.created_at, updatedAt: r.updated_at,
   }
 }
@@ -154,6 +155,7 @@ function mapTaskToDB(t) {
     assignee_ids: t.assigneeIds || [], assignee_id: t.assigneeId || null,
     meeting_note_id: t.meetingNoteId || null,
     gcal_event_id: t.gcalEventId || null,
+    sort_order: t.sortOrder ?? 0,
     created_at: t.createdAt, updated_at: t.updatedAt,
   }
 }
@@ -1253,15 +1255,100 @@ document.addEventListener('click', e => {
   }
 })
 
+// ── Drag & Drop Reorder ───────────────────────────────────
+let _dragTaskId = null
+let _dragPlaceholder = null
+
 document.addEventListener('dragstart', e => {
   const card = e.target.closest('.task-card')
   if (!card?.dataset.taskId) return
-  e.dataTransfer.setData('taskId', card.dataset.taskId)
-  card.classList.add('dragging')
+  _dragTaskId = card.dataset.taskId
+  e.dataTransfer.setData('taskId', _dragTaskId)
+  e.dataTransfer.effectAllowed = 'move'
+  setTimeout(() => card.classList.add('dragging'), 0)
 })
 
 document.addEventListener('dragend', e => {
-  e.target.closest?.('.task-card')?.classList.remove('dragging')
+  const card = e.target.closest?.('.task-card')
+  if (card) card.classList.remove('dragging')
+  document.querySelectorAll('.drag-above, .drag-below').forEach(el => el.classList.remove('drag-above', 'drag-below'))
+  _dragTaskId = null
+})
+
+// Reorder within task-list containers
+document.addEventListener('dragover', e => {
+  const card = e.target.closest('.task-card')
+  const list = e.target.closest('.task-list, .kanban-tasks')
+  if (!list || !_dragTaskId) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+
+  // Clean previous indicators
+  list.querySelectorAll('.drag-above, .drag-below').forEach(el => el.classList.remove('drag-above', 'drag-below'))
+
+  if (card && card.dataset.taskId !== _dragTaskId) {
+    const rect = card.getBoundingClientRect()
+    const mid = rect.top + rect.height / 2
+    if (e.clientY < mid) {
+      card.classList.add('drag-above')
+    } else {
+      card.classList.add('drag-below')
+    }
+  }
+})
+
+document.addEventListener('drop', e => {
+  const list = e.target.closest('.task-list, .kanban-tasks')
+  if (!list || !_dragTaskId) return
+
+  // Handle kanban column status change
+  const kanbanCol = e.target.closest('.kanban-col')
+
+  const targetCard = e.target.closest('.task-card')
+  const targetId = targetCard?.dataset.taskId
+
+  if (!targetId || targetId === _dragTaskId) {
+    // Dropped on column but not on a card — handle kanban status change
+    if (kanbanCol) {
+      e.preventDefault()
+      kanbanCol.classList.remove('drag-over')
+      updateTask(_dragTaskId, { status: kanbanCol.dataset.col })
+      renderView(state.currentView)
+    }
+    return
+  }
+
+  e.preventDefault()
+
+  // Determine position: above or below target
+  const rect = targetCard.getBoundingClientRect()
+  const insertBefore = e.clientY < rect.top + rect.height / 2
+
+  // Get all task IDs in this list in current DOM order
+  const cards = Array.from(list.querySelectorAll('.task-card[data-task-id]'))
+  const ids = cards.map(c => c.dataset.taskId).filter(id => id !== _dragTaskId)
+
+  // Insert dragged task at new position
+  const targetIdx = ids.indexOf(targetId)
+  const insertIdx = insertBefore ? targetIdx : targetIdx + 1
+  ids.splice(insertIdx, 0, _dragTaskId)
+
+  // Update sort_order for all tasks in this group
+  ids.forEach((id, i) => {
+    const task = state.tasks.find(t => t.id === id)
+    if (task && task.sortOrder !== i) {
+      updateTask(id, { sortOrder: i })
+    }
+  })
+
+  // If kanban, also update status
+  if (kanbanCol) {
+    updateTask(_dragTaskId, { status: kanbanCol.dataset.col })
+  }
+
+  // Clean up
+  document.querySelectorAll('.drag-above, .drag-below').forEach(el => el.classList.remove('drag-above', 'drag-below'))
+  renderView(state.currentView)
 })
 
 document.addEventListener('keydown', e => {
@@ -2054,7 +2141,7 @@ function getVisibleTasks() {
   return state.tasks.filter(t => {
     if (t.status === 'DONE' && new Date(t.updatedAt) < sevenDaysAgo) return false
     return true
-  })
+  }).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 }
 
 // ── Init ──────────────────────────────────────────────────

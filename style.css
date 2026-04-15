@@ -640,7 +640,9 @@ select.input-base {
 
 /* Dragging state */
 .task-card[draggable="true"] { cursor: grab; }
-.task-card.dragging { opacity: 0.4; }
+.task-card.dragging { opacity: 0.3; transform: scale(0.98); }
+.task-card.drag-above { border-top: 2px solid var(--accent-pink); margin-top: -1px; }
+.task-card.drag-below { border-bottom: 2px solid var(--accent-pink); margin-bottom: -1px; }
 
 /* ── Calendario ─────────────────────────────────────────── */
 .cal-controls {
