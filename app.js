@@ -451,7 +451,7 @@ function renderMiDia() {
   const label = `${dayName[0].toUpperCase() + dayName.slice(1)}, ${t.getDate()} de ${MONTHS_ES[t.getMonth()]}`
   document.getElementById('mi-dia-subtitle').textContent = label
 
-  const myTasks = state.tasks
+  const myTasks = getVisibleTasks()
 
   const tomorrow = new Date(today()); tomorrow.setDate(tomorrow.getDate() + 1)
   const isDueTomorrow = t => t.dueDate && sameDay(parseLocalDate(t.dueDate), tomorrow)
@@ -563,16 +563,10 @@ function renderKanban() {
       </div>`
   }).join('')
 
+  // Kanban column drag-over visual (drop handled by global handler)
   board.querySelectorAll('.kanban-col').forEach(col => {
-    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('drag-over') })
-    col.addEventListener('dragleave', ()=>col.classList.remove('drag-over'))
-    col.addEventListener('drop', e=>{
-      e.preventDefault(); col.classList.remove('drag-over')
-      const taskId = e.dataTransfer.getData('taskId')
-      if (!taskId) return
-      updateTask(taskId, { status: col.dataset.col })
-      renderKanban()
-    })
+    col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over') })
+    col.addEventListener('dragleave', () => col.classList.remove('drag-over'))
   })
 }
 
@@ -1282,7 +1276,7 @@ document.addEventListener('dragend', e => {
 // Reorder within task-list containers
 document.addEventListener('dragover', e => {
   const card = e.target.closest('.task-card')
-  const list = e.target.closest('.task-list, .kanban-tasks')
+  const list = e.target.closest('.task-list, .kanban-tasks, .kanban-col')
   if (!list || !_dragTaskId) return
   e.preventDefault()
   e.dataTransfer.dropEffect = 'move'
@@ -1302,7 +1296,7 @@ document.addEventListener('dragover', e => {
 })
 
 document.addEventListener('drop', e => {
-  const list = e.target.closest('.task-list, .kanban-tasks')
+  const list = e.target.closest('.task-list, .kanban-tasks, .kanban-col')
   if (!list || !_dragTaskId) return
 
   // Handle kanban column status change
