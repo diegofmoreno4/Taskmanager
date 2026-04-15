@@ -651,6 +651,35 @@ select.input-base {
   gap: 0.5rem;
 }
 
+/* ── View Toggle (Mensual / Semanal) ───────────────────── */
+.view-toggle {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  padding: 3px;
+  gap: 2px;
+}
+.view-toggle-btn {
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--r-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--t-fast);
+}
+.view-toggle-btn:hover { color: var(--text-2); }
+.view-toggle-btn.active {
+  background: var(--bg-elevated);
+  color: var(--text-1);
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+}
+
 .cal-month-label {
   font-weight: 700;
   font-size: 0.9rem;
