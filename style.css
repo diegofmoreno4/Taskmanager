@@ -193,6 +193,13 @@ body {
   border-radius: var(--r-lg);
 }
 
+/* Disable sticky header on calendario and kanban */
+#view-calendario .view-header,
+#view-kanban .view-header {
+  position: relative;
+  top: 0;
+}
+
 .view-title    { font-size: 1.5rem; font-weight: 800; color: var(--text-1); }
 .view-subtitle { font-size: 0.875rem; color: var(--text-3); margin-top: 0.2rem; }
 
