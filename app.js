@@ -691,7 +691,7 @@ function renderCalWeek() {
       events.push({ type: 'block', title: t.title, time: fmtTime(t.timeBlockStart) + (t.timeBlockEnd ? '–' + fmtTime(t.timeBlockEnd) : ''), id: t.id })
     })
     // Task due dates (show at 9am slot)
-    if (hour === 9) {
+    if (hour === 7) {
       state.tasks.forEach(t => {
         if (!t.dueDate || t.timeBlockStart) return
         if (!sameDay(parseLocalDate(t.dueDate), date)) return
@@ -1121,7 +1121,7 @@ document.addEventListener('click', e => {
     renderCalendario(); return
   }
 
-  const detailItem = el.closest('.cal-detail-item, .today-item')
+  const detailItem = el.closest('.cal-detail-item, .today-item, .cal-week-event')
   if (detailItem?.dataset.taskId && !el.closest('[data-action]')) {
     const task = state.tasks.find(t=>t.id===detailItem.dataset.taskId)
     if (task) openModal(task); return
