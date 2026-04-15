@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-text">Task Manager</span>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar-search">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="global-search" class="search-input" placeholder="Buscar tareas... (Ctrl+K)" autocomplete="off" />
+      </div>
+      <div id="search-results" class="search-results hidden"></div>
+
+      <nav class="sidebar-nav">
+        <span class="nav-label">Navegación</span>
+        <a class="nav-link active" data-view="mi-dia">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          Mi Día
+        </a>
+        <a class="nav-link" data-view="mis-tareas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Mis Tareas
+        </a>
+        <a class="nav-link" data-view="kanban">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+          Kanban
+        </a>
+        <a class="nav-link" data-view="calendario">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Calendario
+        </a>
+        <a class="nav-link" data-view="dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-link" data-view="reuniones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Reuniones
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="overdue-sidebar-wrap">
+          <a class="nav-link overdue-nav-link" data-view="vencidas" id="sidebar-overdue-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Tareas Vencidas
+            <span id="sidebar-overdue-count" class="overdue-badge"></span>
+          </a>
+        </div>
+        <!-- Settings collapsible -->
+        <div class="sidebar-settings">
+          <button class="settings-toggle" id="btn-settings-toggle">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            Configuración
+            <svg class="settings-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="settings-panel" id="settings-panel">
+            <div class="settings-section-label">Google Calendar</div>
+            <div id="gcal-accounts-list"></div>
+            <button id="btn-gcal-add" class="btn-gcal-add">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar cuenta
+            </button>
+          </div>
+        </div>
+        <div class="sidebar-version">Task Manager · v2.0</div>
+      </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- ═══════════════ MAIN ═══════════════ -->
+    <main class="main-content">
+
+      <!-- Mobile top bar -->
+      <div class="mobile-topbar">
+        <button id="btn-sidebar-toggle" class="btn-hamburger" aria-label="Menú">
+          <span></span><span></span><span></span>
+        </button>
+        <span class="mobile-topbar-title">Task Manager</span>
+      </div>
+
+      <!-- VIEW: TAREAS VENCIDAS -->
+      <section id="view-vencidas" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Tareas Vencidas</h1>
+            <p class="view-subtitle">Tareas con fecha límite pasada que aún no están listas</p>
+          </div>
+        </div>
+        <div id="vencidas-list"></div>
+      </section>
+
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Dashboard</h1>
+            <p class="view-subtitle">Métricas y resumen de tareas</p>
+          </div>
+        </div>
+        <div id="dashboard-content"></div>
+      </section>
+
+      <!-- VIEW: MI DÍA -->
+      <section id="view-mi-dia" class="view">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Mi Día</h1>
+            <p class="view-subtitle" id="mi-dia-subtitle"></p>
+          </div>
+          <button class="btn-primary" id="btn-new-task-mi-dia">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nueva tarea
+          </button>
+        </div>
+        <div id="mi-dia-content"></div>
+      </section>
+
+      <!-- VIEW: MIS TAREAS -->
+      <section id="view-mis-tareas" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Mis Tareas</h1>
+            <p class="view-subtitle">Tu lista personal de tareas</p>
+          </div>
+          <button class="btn-primary" id="btn-new-task-mis">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nueva tarea
+          </button>
+        </div>
+
+        <div class="stats-bar" id="stats-bar"></div>
+
+        <div class="filter-bar-row">
+          <div class="filter-bar" id="filter-bar-mis"></div>
+          <select id="filter-client-select" class="input-base client-filter-select">
+            <option value="all">Todos los clientes</option>
+          </select>
+        </div>
+
+        <div id="mis-tareas-list"></div>
+      </section>
+
+      <!-- VIEW: KANBAN -->
+      <section id="view-kanban" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Kanban</h1>
+            <p class="view-subtitle">Arrastra las tarjetas entre columnas</p>
+          </div>
+          <button class="btn-primary" id="btn-new-task-kanban">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nueva tarea
+          </button>
+        </div>
+        <div class="kanban-board" id="kanban-board"></div>
+      </section>
+
+      <!-- VIEW: CALENDARIO -->
+      <section id="view-calendario" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Calendario</h1>
+            <p class="view-subtitle">
+              <span class="legend-dot" style="background:var(--accent-green)"></span> Bloque de tiempo &nbsp;
+              <span class="legend-dot" style="background:var(--accent-pink)"></span> Fecha límite
+            </p>
+          </div>
+          <div class="cal-nav">
+            <button class="btn-ghost btn-icon" id="cal-prev">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span id="cal-month-label" class="cal-month-label"></span>
+            <button class="btn-ghost btn-icon" id="cal-next">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="btn-ghost" id="cal-today" style="font-size:0.78rem">Hoy</button>
+          </div>
+        </div>
+        <div class="cal-layout" id="cal-layout">
+          <div class="cal-top-row" id="cal-top-row">
+            <div class="cal-grid-wrap">
+              <div class="cal-grid" id="cal-grid"></div>
+            </div>
+            <div class="cal-detail hidden" id="cal-detail"></div>
+          </div>
+          <div class="cal-today-panel" id="cal-today-panel"></div>
+        </div>
+      </section>
+
+      <!-- VIEW: REUNIONES -->
+      <section id="view-reuniones" class="view hidden reuniones-view">
+        <div class="reuniones-list-panel">
+          <div class="reuniones-list-header">
+            <h2 class="panel-title">Reuniones</h2>
+            <button class="btn-primary btn-sm" id="btn-new-meeting">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <div class="meeting-filter-row">
+            <select id="meeting-client-filter" class="input-base meeting-filter-select">
+              <option value="">Todos los clientes</option>
+            </select>
+          </div>
+          <div id="meetings-list"></div>
+        </div>
+        <div class="reuniones-editor-panel" id="reuniones-editor">
+          <div class="editor-empty" id="editor-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>Selecciona una reunión o crea una nueva</p>
+          </div>
+          <div id="editor-content" class="hidden">
+            <div class="editor-toolbar">
+              <input id="editor-title" class="editor-title-input" placeholder="Título de la reunión..." />
+              <select id="editor-client" class="input-base editor-client-select">
+                <option value="">— Sin cliente —</option>
+              </select>
+              <input id="editor-client-other" class="input-base editor-client-other" placeholder="Nombre del cliente..." style="display:none" />
+              <div class="editor-actions">
+                <span id="editor-autosave-indicator" class="autosave-indicator"></span>
+                <button class="btn-ghost btn-sm" id="btn-extract-task" title="Selecciona texto y crea una tarea">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  Crear tarea
+                </button>
+                <button class="btn-primary btn-sm" id="btn-save-meeting">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/><polyline points="7 3 7 8 15 8"/></svg>
+                  Guardar
+                </button>
+                <button class="btn-ghost btn-icon btn-sm" id="btn-delete-meeting">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
+            </div>
+            <textarea id="editor-textarea" class="editor-textarea" placeholder="Escribe las notas de la reunión aquí...
+
+Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para convertirlo en una tarea asignada."></textarea>
+            <div id="editor-linked-tasks" class="editor-linked-tasks hidden"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ═══════════════ TASK MODAL ═══════════════ -->
+  <div id="task-modal" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="modal-title">Nueva Tarea</h2>
+        <button class="btn-ghost btn-icon" id="modal-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Título *</label>
+          <input id="f-title" class="input-base" placeholder="¿Qué hay que hacer?" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea id="f-desc" class="input-base" rows="3" placeholder="Contexto, detalles, criterios de aceptación..." style="resize:vertical"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cliente</label>
+          <select id="f-client" class="input-base"></select>
+          <input id="f-client-other" class="input-base" placeholder="Nombre del cliente..." style="display:none;margin-top:0.4rem" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL de referencia</label>
+          <input id="f-url" class="input-base" type="url" placeholder="https://..." />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select id="f-status" class="input-base">
+              <option value="TODO">Por Hacer</option>
+              <option value="IN_PROGRESS">En Progreso</option>
+              <option value="REVIEW">En Revisión</option>
+
+              <option value="DONE">Listo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha límite</label>
+            <input id="f-due" class="input-base" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bloque de tiempo</label>
+          <div class="form-row">
+            <input id="f-block-start" class="input-base" type="datetime-local" />
+            <input id="f-block-end" class="input-base" type="datetime-local" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subtareas</label>
+          <div id="f-subtasks-list"></div>
+          <div class="subtask-add-row">
+            <input id="f-subtask-input" class="input-base" placeholder="Agregar subtarea..." />
+            <button type="button" class="btn-ghost btn-sm" id="btn-add-subtask">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger-ghost" id="btn-delete-task" style="display:none">Eliminar tarea</button>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn-ghost" id="btn-modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="btn-modal-save">Crear tarea</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ EXTRACT TASKS MODAL ═══════════════ -->
+  <div id="extract-modal" class="modal-overlay hidden">
+    <div class="modal-panel extract-panel">
+      <div class="modal-header">
+        <div>
+          <h2>Extraer tareas</h2>
+          <p class="extract-subtitle" id="extract-subtitle">Tareas detectadas en las notas</p>
+        </div>
+        <button class="btn-ghost btn-icon" id="extract-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body extract-body">
+        <div class="extract-global-row">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Cliente</label>
+            <select id="extract-client" class="input-base"></select>
+          </div>
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Fecha límite global</label>
+            <input id="extract-global-date" class="input-base" type="date" title="Aplicar a todas las tareas sin fecha" />
+          </div>
+          <button class="btn-ghost btn-sm" id="extract-apply-date" style="align-self:flex-end" title="Aplicar fecha a tareas sin fecha">Aplicar</button>
+        </div>
+        <div class="extract-actions-top">
+          <button class="btn-ghost btn-sm" id="extract-select-all">Seleccionar todas</button>
+          <button class="btn-ghost btn-sm" id="extract-deselect-all">Deseleccionar</button>
+        </div>
+        <div id="extract-list" class="extract-list"></div>
+        <div id="extract-empty" class="extract-empty hidden">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <p>No se detectaron tareas en las notas</p>
+          <span>Usa líneas con →, -, * o listas numeradas para marcar acciones</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span class="extract-count" id="extract-count">0 tareas seleccionadas</span>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn-ghost" id="extract-cancel">Cancelar</button>
+          <button class="btn-primary" id="extract-create">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Crear tareas
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline badge dropdown (shared, repositioned by JS) -->
+  <div id="badge-dropdown" class="badge-dropdown hidden"></div>
+  <div id="pie-tooltip" class="pie-tooltip hidden"></div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Reschedule popup -->
+  <div id="reschedule-popup" class="reschedule-popup hidden">
+    <div class="reschedule-title">Reprogramar</div>
+    <button class="reschedule-opt" data-resc="today">Hoy</button>
+    <button class="reschedule-opt" data-resc="tomorrow">Mañana</button>
+    <button class="reschedule-opt" data-resc="next-monday">Próximo lunes</button>
+    <button class="reschedule-opt" data-resc="next-week">En 1 semana</button>
+    <button class="reschedule-opt" data-resc="custom">Elegir fecha...</button>
+  </div>
+
+  <!-- Keyboard shortcuts hint -->
+  <div id="shortcuts-hint" class="shortcuts-hint hidden">
+    <div class="shortcuts-grid">
+      <kbd>N</kbd><span>Nueva tarea</span>
+      <kbd>Ctrl+K</kbd><span>Buscar</span>
+      <kbd>1-6</kbd><span>Cambiar vista</span>
+      <kbd>Esc</kbd><span>Cerrar</span>
+    </div>
+    <p class="shortcuts-dismiss">Presiona <kbd>?</kbd> para mostrar/ocultar</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="app.js"></script>
+</body>
+</html>

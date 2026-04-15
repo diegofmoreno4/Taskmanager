@@ -1,0 +1,7 @@
+node_modules/
+task-app/
+assets/
+.claude/
+.env
+.DS_Store
+Thumbs.db
