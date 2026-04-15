@@ -47,6 +47,7 @@ const state = {
   calSelected: null,
   meetingId: null,
   meetingIsNew: false,
+  calMode: 'month',
   filterStatus: 'all',
   filterClient: 'all',
 }
@@ -576,6 +577,32 @@ function renderKanban() {
 // ── View: Calendario ──────────────────────────────────────
 async function renderCalendario() {
   await loadGCalEvents()
+
+  // Update mode toggle
+  document.querySelectorAll('#cal-mode-toggle .view-toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.calMode === state.calMode))
+
+  if (state.calMode === 'week') {
+    renderCalWeek()
+  } else {
+    renderCalMonth()
+  }
+
+  const topRow = document.getElementById('cal-top-row')
+  const detail = document.getElementById('cal-detail')
+  if (state.calSelected) {
+    topRow.classList.add('has-detail')
+    detail.classList.remove('hidden')
+    renderCalDetail(state.calSelected)
+  } else {
+    topRow.classList.remove('has-detail')
+    detail.classList.add('hidden')
+  }
+
+  renderCalTodayPanel()
+}
+
+function renderCalMonth() {
   const d = state.calDate
   const year = d.getFullYear(), month = d.getMonth()
   document.getElementById('cal-month-label').textContent = `${MONTHS_CAP[month]} ${year}`
@@ -615,21 +642,93 @@ async function renderCalendario() {
   }
 
   gridHTML += '</div>'
-
   document.querySelector('.cal-grid-wrap').innerHTML = gridHTML
+}
 
-  const topRow = document.getElementById('cal-top-row')
-  const detail = document.getElementById('cal-detail')
-  if (state.calSelected) {
-    topRow.classList.add('has-detail')
-    detail.classList.remove('hidden')
-    renderCalDetail(state.calSelected)
-  } else {
-    topRow.classList.remove('has-detail')
-    detail.classList.add('hidden')
+function getWeekDays(date) {
+  const d = new Date(date)
+  const dow = d.getDay()
+  // Monday = start of week
+  const diff = dow === 0 ? -6 : 1 - dow
+  d.setDate(d.getDate() + diff)
+  d.setHours(0,0,0,0)
+  const days = []
+  for (let i = 0; i < 5; i++) { // Mon-Fri
+    days.push(new Date(d))
+    d.setDate(d.getDate() + 1)
+  }
+  return days
+}
+
+function renderCalWeek() {
+  const weekDays = getWeekDays(state.calDate)
+  const DAYS_WORK = ['Lun','Mar','Mié','Jue','Vie']
+  const first = weekDays[0], last = weekDays[4]
+
+  // Label: "14 – 18 Abril 2026"
+  const label = first.getMonth() === last.getMonth()
+    ? `${first.getDate()} – ${last.getDate()} ${MONTHS_CAP[first.getMonth()]} ${first.getFullYear()}`
+    : `${first.getDate()} ${MONTHS_CAP[first.getMonth()].slice(0,3)} – ${last.getDate()} ${MONTHS_CAP[last.getMonth()].slice(0,3)} ${last.getFullYear()}`
+  document.getElementById('cal-month-label').textContent = label
+
+  // Hours to show: 7am - 21pm
+  const hours = []
+  for (let h = 7; h <= 21; h++) hours.push(h)
+
+  // Build events index: for each day+hour, collect events
+  function eventsForDayHour(date, hour) {
+    const events = []
+    // GCal events
+    state.gcalEvents.forEach(e => {
+      const start = e.start?.dateTime || e.start?.date
+      if (!start) return
+      const sd = new Date(start)
+      if (!sameDay(sd, date)) return
+      const sh = sd.getHours()
+      if (sh === hour) events.push({ type: 'gcal', title: e.summary || 'Evento', time: fmtTime(start) + (e.end?.dateTime ? '–' + fmtTime(e.end.dateTime) : ''), desc: (e.description||'').slice(0,50) })
+    })
+    // Task time blocks
+    state.tasks.forEach(t => {
+      if (!t.timeBlockStart) return
+      const sd = new Date(t.timeBlockStart)
+      if (!sameDay(sd, date) || sd.getHours() !== hour) return
+      events.push({ type: 'block', title: t.title, time: fmtTime(t.timeBlockStart) + (t.timeBlockEnd ? '–' + fmtTime(t.timeBlockEnd) : ''), id: t.id })
+    })
+    // Task due dates (show at 9am slot)
+    if (hour === 9) {
+      state.tasks.forEach(t => {
+        if (!t.dueDate || t.timeBlockStart) return
+        if (!sameDay(parseLocalDate(t.dueDate), date)) return
+        events.push({ type: 'due', title: t.title, time: 'Entrega', id: t.id })
+      })
+    }
+    return events
   }
 
-  renderCalTodayPanel()
+  let html = '<div class="cal-week-grid"><div class="cal-week-header"><div class="cal-week-header-cell"></div>'
+  weekDays.forEach((d, i) => {
+    const isToday = sameDay(d, today())
+    html += `<div class="cal-week-header-cell ${isToday ? 'today-col' : ''}">${DAYS_WORK[i]}<span class="cal-week-day-num">${d.getDate()}</span></div>`
+  })
+  html += '</div>'
+
+  hours.forEach(h => {
+    html += `<div class="cal-week-time">${String(h).padStart(2,'0')}:00</div>`
+    weekDays.forEach(d => {
+      const evts = eventsForDayHour(d, h)
+      html += `<div class="cal-week-cell" data-date="${d.toISOString()}">`
+      evts.forEach(e => {
+        html += `<div class="cal-week-event ${e.type}" ${e.id ? `data-task-id="${e.id}"` : ''}>`
+        html += `<strong>${e.time}</strong> ${e.title}`
+        if (e.desc) html += `<br><span style="opacity:0.7">${e.desc}</span>`
+        html += '</div>'
+      })
+      html += '</div>'
+    })
+  })
+
+  html += '</div>'
+  document.querySelector('.cal-grid-wrap').innerHTML = html
 }
 
 function renderCalTodayPanel() {
@@ -723,8 +822,15 @@ function renderCalDetail(date) {
   const total = blockTasks.length + dueTasks.length + gcalForDay.length
 
   let html = `
-    <div class="cal-detail-title" style="text-transform:capitalize">${DAYS_FULL[date.getDay()]} ${date.getDate()} de ${MONTHS_ES[date.getMonth()]}</div>
-    <div class="cal-detail-count">${total} evento${total!==1?'s':''}</div>`
+    <div class="cal-detail-header">
+      <div class="cal-detail-header-info">
+        <div class="cal-detail-title">${DAYS_FULL[date.getDay()]} ${date.getDate()} de ${MONTHS_ES[date.getMonth()]}</div>
+        <div class="cal-detail-count">${total} evento${total!==1?'s':''}</div>
+      </div>
+      <button class="cal-detail-close" id="btn-cal-detail-close" title="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`
 
   if (gcalForDay.length) {
     html += `<div class="cal-detail-section-title" style="color:#4285f4;margin-bottom:0.25rem">
@@ -1025,8 +1131,31 @@ document.addEventListener('click', e => {
     if (task) openModal(task); return
   }
 
-  if (el.closest('#cal-prev'))  { state.calDate = new Date(state.calDate.getFullYear(), state.calDate.getMonth()-1, 1); renderCalendario(); return }
-  if (el.closest('#cal-next'))  { state.calDate = new Date(state.calDate.getFullYear(), state.calDate.getMonth()+1, 1); renderCalendario(); return }
+  // Close cal detail
+  if (el.closest('#btn-cal-detail-close')) {
+    state.calSelected = null
+    renderCalendario()
+    return
+  }
+
+  // Calendar mode toggle
+  const calMode = el.closest('[data-cal-mode]')
+  if (calMode) {
+    state.calMode = calMode.dataset.calMode
+    renderCalendario()
+    return
+  }
+
+  if (el.closest('#cal-prev'))  {
+    if (state.calMode === 'week') { state.calDate.setDate(state.calDate.getDate() - 7) }
+    else { state.calDate = new Date(state.calDate.getFullYear(), state.calDate.getMonth()-1, 1) }
+    renderCalendario(); return
+  }
+  if (el.closest('#cal-next'))  {
+    if (state.calMode === 'week') { state.calDate.setDate(state.calDate.getDate() + 7) }
+    else { state.calDate = new Date(state.calDate.getFullYear(), state.calDate.getMonth()+1, 1) }
+    renderCalendario(); return
+  }
   if (el.closest('#cal-today')) { state.calDate = new Date(); state.calSelected = null; renderCalendario(); return }
 
   const filterBtn = el.closest('.filter-btn')
