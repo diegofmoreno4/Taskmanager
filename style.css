@@ -1976,6 +1976,96 @@ select.input-base {
   flex-shrink: 0;
 }
 
+/* ── Voice Task ──────────────────────────────────────────── */
+.voice-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-pink), var(--accent-magenta));
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(233,30,140,0.35);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+  z-index: 90;
+}
+.voice-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(233,30,140,0.45);
+}
+.voice-fab.recording {
+  animation: voicePulseBtn 1.5s ease infinite;
+}
+@keyframes voicePulseBtn {
+  0%, 100% { box-shadow: 0 4px 20px rgba(233,30,140,0.35); }
+  50% { box-shadow: 0 4px 30px rgba(233,30,140,0.6); }
+}
+
+.voice-panel { max-width: 480px; }
+
+.voice-recording {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+}
+.voice-pulse-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.voice-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(233,30,140,0.15);
+  animation: voicePulse 1.5s ease infinite;
+}
+@keyframes voicePulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.4); opacity: 0; }
+}
+.voice-mic-icon { color: var(--accent-pink); z-index: 1; }
+.voice-status { font-size: 0.9rem; font-weight: 600; color: var(--text-1); }
+.voice-transcript-live {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  min-height: 2rem;
+  text-align: center;
+  font-style: italic;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.voice-draft { display: flex; flex-direction: column; gap: 1rem; }
+.voice-original {
+  background: var(--bg-surface);
+  border-radius: var(--r-sm);
+  padding: 0.75rem;
+  margin-top: 0.25rem;
+}
+.voice-original p {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  margin-top: 0.25rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .voice-fab { bottom: 1rem; left: 1rem; width: 46px; height: 46px; }
+}
+
 /* ── Overdue alert banner ────────────────────────────────── */
 .overdue-alert {
   display: flex;

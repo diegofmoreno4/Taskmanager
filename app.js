@@ -2106,6 +2106,191 @@ document.addEventListener('keydown', e => {
   }
 })
 
+// ── Voice Task ────────────────────────────────────────────
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+let _voiceRecognition = null
+let _voiceTranscript = ''
+
+function startVoiceRecording() {
+  if (!SpeechRecognition) { toast('Tu navegador no soporta reconocimiento de voz', 'error'); return }
+
+  const modal = document.getElementById('voice-modal')
+  const recording = document.getElementById('voice-recording')
+  const draft = document.getElementById('voice-draft')
+  const footer = document.getElementById('voice-footer')
+  const live = document.getElementById('voice-live')
+  const status = document.getElementById('voice-status')
+
+  // Reset UI
+  modal.classList.remove('hidden')
+  recording.classList.remove('hidden')
+  draft.classList.add('hidden')
+  footer.style.display = 'none'
+  live.textContent = ''
+  status.textContent = 'Escuchando...'
+  _voiceTranscript = ''
+  document.getElementById('btn-voice').classList.add('recording')
+  document.getElementById('voice-modal-title').textContent = 'Crear tarea por voz'
+
+  // Start recognition
+  _voiceRecognition = new SpeechRecognition()
+  _voiceRecognition.lang = 'es-ES'
+  _voiceRecognition.continuous = true
+  _voiceRecognition.interimResults = true
+
+  _voiceRecognition.onresult = (e) => {
+    let interim = ''
+    let final = ''
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript
+      } else {
+        interim += e.results[i][0].transcript
+      }
+    }
+    _voiceTranscript = final
+    live.textContent = final + (interim ? interim : '')
+  }
+
+  _voiceRecognition.onerror = (e) => {
+    console.error('Voice error:', e.error)
+    if (e.error === 'not-allowed') {
+      toast('Permiso de micrófono denegado', 'error')
+      closeVoiceModal()
+    } else if (e.error !== 'no-speech') {
+      status.textContent = 'Error — intenta de nuevo'
+    }
+  }
+
+  _voiceRecognition.onend = () => {
+    document.getElementById('btn-voice').classList.remove('recording')
+    if (_voiceTranscript.trim()) {
+      showVoiceDraft(_voiceTranscript.trim())
+    } else {
+      status.textContent = 'No se detectó audio'
+      setTimeout(() => { if (!_voiceTranscript.trim()) closeVoiceModal() }, 2000)
+    }
+  }
+
+  _voiceRecognition.start()
+}
+
+function stopVoiceRecording() {
+  if (_voiceRecognition) {
+    _voiceRecognition.stop()
+    _voiceRecognition = null
+  }
+  document.getElementById('btn-voice').classList.remove('recording')
+}
+
+function showVoiceDraft(text) {
+  const recording = document.getElementById('voice-recording')
+  const draft = document.getElementById('voice-draft')
+  const footer = document.getElementById('voice-footer')
+
+  recording.classList.add('hidden')
+  draft.classList.remove('hidden')
+  footer.style.display = ''
+  document.getElementById('voice-modal-title').textContent = 'Borrador de tarea'
+
+  // Parse the transcript to extract useful info
+  const parsed = parseVoiceTranscript(text)
+
+  document.getElementById('voice-title').value = parsed.title
+  document.getElementById('voice-desc').value = parsed.description
+  document.getElementById('voice-due').value = parsed.dueDate || ''
+  document.getElementById('voice-original-text').textContent = text
+
+  // Populate client dropdown
+  const clientSel = document.getElementById('voice-client')
+  clientSel.innerHTML = `<option value="">— Sin cliente —</option>` +
+    CLIENTS.map(a => `<option value="${a}" ${a === parsed.client ? 'selected' : ''}>${a}</option>`).join('')
+}
+
+function parseVoiceTranscript(text) {
+  let title = text
+  let description = ''
+  let client = ''
+  let dueDate = null
+
+  // Try to detect client names
+  for (const c of CLIENTS) {
+    const re = new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    if (re.test(text)) { client = c; break }
+  }
+
+  // Try to extract date
+  dueDate = extractDateFromText(text)
+
+  // Clean up title: first sentence or up to ~80 chars
+  const sentences = text.split(/[.!?]\s+/)
+  if (sentences.length > 1) {
+    title = sentences[0].trim()
+    // Capitalize first letter
+    title = title.charAt(0).toUpperCase() + title.slice(1)
+    description = sentences.slice(1).join('. ').trim()
+  } else {
+    // Single sentence — use first ~80 chars as title
+    if (text.length > 80) {
+      const cutoff = text.lastIndexOf(' ', 80)
+      title = text.slice(0, cutoff > 20 ? cutoff : 80).trim()
+      description = text.slice(title.length).trim()
+    }
+    title = title.charAt(0).toUpperCase() + title.slice(1)
+  }
+
+  return { title, description, client, dueDate }
+}
+
+function createVoiceTask() {
+  const title = document.getElementById('voice-title').value.trim()
+  if (!title) { document.getElementById('voice-title').focus(); return }
+
+  const clientSel = document.getElementById('voice-client').value
+  const dueDate = document.getElementById('voice-due').value || null
+  const description = document.getElementById('voice-desc').value.trim() || null
+
+  createTask({
+    title,
+    description,
+    assigneeIds: [state.currentUserId],
+    assigneeId: state.currentUserId,
+    accountName: clientSel || null,
+    url: null,
+    status: 'TODO',
+    priority: 'MEDIUM',
+    estimatedHours: null,
+    dueDate,
+    timeBlockStart: null,
+    timeBlockEnd: null,
+    subtasks: [],
+    meetingNoteId: null,
+  })
+
+  closeVoiceModal()
+  renderView(state.currentView)
+  toast('Tarea creada por voz')
+}
+
+function closeVoiceModal() {
+  stopVoiceRecording()
+  document.getElementById('voice-modal').classList.add('hidden')
+  document.getElementById('btn-voice').classList.remove('recording')
+}
+
+// Voice event listeners
+document.getElementById('btn-voice').addEventListener('click', startVoiceRecording)
+document.getElementById('voice-stop').addEventListener('click', stopVoiceRecording)
+document.getElementById('voice-close').addEventListener('click', closeVoiceModal)
+document.getElementById('voice-create').addEventListener('click', createVoiceTask)
+document.getElementById('voice-retry').addEventListener('click', () => {
+  stopVoiceRecording()
+  startVoiceRecording()
+})
+document.getElementById('voice-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('voice-modal')) closeVoiceModal()
+})
+
 // ── Overdue Alert Banner ──────────────────────────────────
 function renderOverdueAlert() {
   const overdueCount = state.tasks.filter(t => isOverdue(t)).length

@@ -380,6 +380,69 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
     </div>
   </div>
 
+  <!-- ═══════════════ VOICE TASK ═══════════════ -->
+  <!-- Floating mic button -->
+  <button id="btn-voice" class="voice-fab" title="Crear tarea por voz">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+
+  <!-- Voice draft modal -->
+  <div id="voice-modal" class="modal-overlay hidden">
+    <div class="modal-panel voice-panel">
+      <div class="modal-header">
+        <h2 id="voice-modal-title">Crear tarea por voz</h2>
+        <button class="btn-ghost btn-icon" id="voice-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Recording state -->
+        <div id="voice-recording" class="voice-recording">
+          <div class="voice-pulse-wrap">
+            <div class="voice-pulse"></div>
+            <svg class="voice-mic-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+          <p class="voice-status" id="voice-status">Escuchando...</p>
+          <p class="voice-transcript-live" id="voice-live"></p>
+          <button class="btn-ghost" id="voice-stop">Detener</button>
+        </div>
+
+        <!-- Draft state -->
+        <div id="voice-draft" class="voice-draft hidden">
+          <div class="form-group">
+            <label class="form-label">Título</label>
+            <input id="voice-title" class="input-base" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descripción</label>
+            <textarea id="voice-desc" class="input-base" rows="3" autocomplete="off" style="resize:vertical"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cliente</label>
+              <select id="voice-client" class="input-base"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fecha límite</label>
+              <input id="voice-due" class="input-base" type="date" />
+            </div>
+          </div>
+          <div class="voice-original">
+            <span class="form-label">Transcripción original:</span>
+            <p id="voice-original-text"></p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" id="voice-footer" style="display:none">
+        <button class="btn-ghost" id="voice-retry">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Repetir
+        </button>
+        <button class="btn-primary" id="voice-create">Crear tarea</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Inline badge dropdown (shared, repositioned by JS) -->
   <div id="badge-dropdown" class="badge-dropdown hidden"></div>
   <div id="pie-tooltip" class="pie-tooltip hidden"></div>
