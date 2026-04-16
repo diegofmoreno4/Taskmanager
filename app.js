@@ -1820,9 +1820,17 @@ async function gcalFetchWithToken(token, path, options = {}) {
 async function loadGCalEvents() {
   if (!state.gcalAccounts.length) return
   const d = state.calDate
-  const tMin = new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
-  const tMax = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString()
-  const params = `?timeMin=${encodeURIComponent(tMin)}&timeMax=${encodeURIComponent(tMax)}&singleEvents=true&orderBy=startTime&maxResults=100`
+  // Use a wide range: from start of month (or week) to end, with buffer
+  let tMin, tMax
+  if (state.calMode === 'week') {
+    const weekDays = getWeekDays(d)
+    tMin = new Date(weekDays[0]); tMin.setDate(tMin.getDate() - 1)
+    tMax = new Date(weekDays[4]); tMax.setDate(tMax.getDate() + 2)
+  } else {
+    tMin = new Date(d.getFullYear(), d.getMonth(), 1)
+    tMax = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59)
+  }
+  const params = `?timeMin=${encodeURIComponent(tMin.toISOString())}&timeMax=${encodeURIComponent(tMax.toISOString())}&singleEvents=true&orderBy=startTime&maxResults=250`
 
   const results = await Promise.all(state.gcalAccounts.map(async (acct, i) => {
     const data = await gcalFetchWithToken(acct.token, `/calendars/primary/events${params}`)
@@ -1830,6 +1838,7 @@ async function loadGCalEvents() {
       state.gcalAccounts[i]._expired = true
       saveGCalAccounts()
       renderGCalAccounts()
+      toast('Token de Google Calendar expirado — reconecta en Configuración', 'error')
       return []
     }
     state.gcalAccounts[i]._expired = false
