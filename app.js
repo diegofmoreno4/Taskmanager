@@ -2208,36 +2208,82 @@ function showVoiceDraft(text) {
 }
 
 function parseVoiceTranscript(text) {
-  let title = text
+  let title = ''
   let description = ''
   let client = ''
   let dueDate = null
 
-  // Try to detect client names
+  // Detect client
   for (const c of CLIENTS) {
     const re = new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
     if (re.test(text)) { client = c; break }
   }
 
-  // Try to extract date
+  // Detect date
   dueDate = extractDateFromText(text)
 
-  // Clean up title: first sentence or up to ~80 chars
-  const sentences = text.split(/[.!?]\s+/)
-  if (sentences.length > 1) {
-    title = sentences[0].trim()
-    // Capitalize first letter
-    title = title.charAt(0).toUpperCase() + title.slice(1)
-    description = sentences.slice(1).join('. ').trim()
-  } else {
-    // Single sentence — use first ~80 chars as title
-    if (text.length > 80) {
-      const cutoff = text.lastIndexOf(' ', 80)
-      title = text.slice(0, cutoff > 20 ? cutoff : 80).trim()
-      description = text.slice(title.length).trim()
-    }
-    title = title.charAt(0).toUpperCase() + title.slice(1)
+  // Strip conversational filler to extract the actual task
+  // Patterns like "necesito hacer...", "tengo que...", "hay que...", "crear una tarea para...", etc.
+  const fillerPatterns = [
+    /^(?:ok|okey|bueno|a ver|haber|mira|oye|eh+)\s*[,.]?\s*/i,
+    /^(?:quiero|necesito|tengo que|hay que|debo|debería|toca|me toca|falta)\s+/i,
+    /^(?:crear|agregar|añadir|poner|meter)\s+(?:una\s+)?(?:tarea|task)\s+(?:para|de|que diga|que sea|sobre|con)\s+/i,
+    /^(?:crear|agregar|añadir|poner|meter)\s+(?:una\s+)?(?:tarea|task)\s+/i,
+    /^(?:la tarea (?:es|sería|será|va a ser))\s+/i,
+    /^(?:recordar(?:me)?|acuérda(?:me|te)|no olvid(?:ar|es))\s+(?:que\s+(?:tengo que|debo|hay que)\s+)?/i,
+    /^(?:apuntar?|anotar?|registrar?)\s+(?:que\s+)?/i,
+  ]
+
+  let cleaned = text.trim()
+  for (const pattern of fillerPatterns) {
+    cleaned = cleaned.replace(pattern, '')
   }
+
+  // Remove trailing date/time phrases from the title
+  const trailingDate = [
+    /\s+(?:para|antes del?|el próximo|este|hasta el?)\s+(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo|hoy|mañana|pasado mañana).*$/i,
+    /\s+(?:para|antes del?|hasta el?)\s+(?:el\s+)?\d{1,2}\s+(?:de\s+)?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre).*$/i,
+    /\s+(?:para|antes del?|hasta el?)\s+(?:el\s+)?\d{1,2}[\/\-]\d{1,2}.*$/i,
+  ]
+
+  // Remove client name from title
+  if (client) {
+    const clientRe = new RegExp(`\\s*(?:para|de|del?|con|al?)\\s+${client.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'ig')
+    cleaned = cleaned.replace(clientRe, '')
+    // Also remove standalone client name at the end
+    const clientEnd = new RegExp(`\\s+${client.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i')
+    cleaned = cleaned.replace(clientEnd, '')
+  }
+
+  // Remove trailing date phrases
+  for (const pattern of trailingDate) {
+    cleaned = cleaned.replace(pattern, '')
+  }
+
+  // Split into sentences
+  const sentences = cleaned.split(/[.!?]\s+/).map(s => s.trim()).filter(Boolean)
+
+  if (sentences.length > 1) {
+    title = sentences[0]
+    description = sentences.slice(1).join('. ')
+  } else {
+    title = cleaned
+  }
+
+  // Clean up: remove trailing punctuation, capitalize
+  title = title.replace(/[.,;:!?]+$/, '').trim()
+  if (title) title = title.charAt(0).toUpperCase() + title.slice(1)
+
+  // If title is still too long, cut at a reasonable point
+  if (title.length > 80) {
+    const cutoff = title.lastIndexOf(' ', 80)
+    const extra = title.slice(cutoff > 20 ? cutoff : 80).trim()
+    title = title.slice(0, cutoff > 20 ? cutoff : 80).trim()
+    if (extra) description = extra + (description ? '. ' + description : '')
+  }
+
+  // Fallback: if cleaning removed everything, use original
+  if (!title) title = text.charAt(0).toUpperCase() + text.slice(1)
 
   return { title, description, client, dueDate }
 }
