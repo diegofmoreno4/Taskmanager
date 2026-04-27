@@ -178,20 +178,24 @@ body {
 /* ── View Header — Sticky Glass Bar ────────────────────── */
 .view-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.25rem;
   position: sticky;
   top: 0.75rem;
   z-index: 50;
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.25rem;
   margin: 0 0 1.25rem;
   background: rgba(13,13,18,0.45);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
+  flex-wrap: wrap;
 }
+.view-header > div:first-child { flex-shrink: 0; }
+.view-header > .btn-primary { margin-left: auto; }
+.view-title { font-size: 1.35rem; }
 
 /* Disable sticky header on calendario and kanban */
 #view-calendario .view-header,
@@ -468,8 +472,8 @@ select.input-base {
 /* ── Stats Bar ──────────────────────────────────────────── */
 .stats-bar {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
@@ -477,14 +481,15 @@ select.input-base {
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
-  padding: 0.875rem 1.25rem;
+  padding: 0.625rem 1rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  min-width: 90px;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
-.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
-.stat-label { font-size: 0.7rem; color: var(--text-3); font-weight: 500; }
+.stat-value { font-size: 1.15rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.7rem; color: var(--text-3); font-weight: 500; white-space: nowrap; }
 
 /* ── Filter Bar ─────────────────────────────────────────── */
 .filter-bar {
@@ -1974,6 +1979,45 @@ select.input-base {
   background: linear-gradient(to right, transparent, var(--bg-base));
   pointer-events: none;
   flex-shrink: 0;
+}
+
+/* ── Recurrence ──────────────────────────────────────────── */
+.recurrence-days {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+.rec-day-chip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--glass-border);
+  background: var(--bg-input);
+  color: var(--text-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.rec-day-chip:hover { border-color: var(--accent-pink); color: var(--text-1); }
+.rec-day-chip.active {
+  background: var(--accent-pink);
+  border-color: var(--accent-pink);
+  color: #fff;
+}
+
+.recurrence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-purple);
+  background: rgba(139,92,246,0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--r-pill);
 }
 
 /* ── Voice Task ──────────────────────────────────────────── */

@@ -67,6 +67,59 @@ function toast(message, type='success') {
   setTimeout(() => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 250) }, 2800)
 }
 
+// ── Recurrence Helpers ────────────────────────────────────
+function recurrenceLabel(rec) {
+  if (!rec) return ''
+  if (rec.type === 'daily') return 'Diario'
+  if (rec.type === 'monthly') return 'Mensual'
+  if (rec.type === 'weekly') {
+    const labels = { 0:'D', 1:'L', 2:'M', 3:'X', 4:'J', 5:'V', 6:'S' }
+    return (rec.daysOfWeek || []).sort().map(d => labels[d]).join(' ')
+  }
+  return ''
+}
+
+function getModalRecurrence() {
+  const type = document.getElementById('f-recurrence').value
+  if (type === 'none') return null
+  if (type === 'weekly') {
+    const days = Array.from(document.querySelectorAll('.rec-day-chip.active'))
+      .map(c => parseInt(c.dataset.recDay))
+      .sort()
+    if (!days.length) return null
+    return { type: 'weekly', daysOfWeek: days }
+  }
+  return { type }
+}
+
+function getNextOccurrence(task) {
+  const rec = task.recurrence
+  if (!rec) return null
+  const fromDate = task.dueDate ? parseLocalDate(task.dueDate) : today()
+  const next = new Date(fromDate)
+
+  if (rec.type === 'daily') {
+    next.setDate(next.getDate() + 1)
+  } else if (rec.type === 'monthly') {
+    next.setMonth(next.getMonth() + 1)
+  } else if (rec.type === 'weekly' && rec.daysOfWeek?.length) {
+    // Find next day of week from `daysOfWeek` after `fromDate`
+    next.setDate(next.getDate() + 1)
+    for (let i = 0; i < 7; i++) {
+      if (rec.daysOfWeek.includes(next.getDay())) break
+      next.setDate(next.getDate() + 1)
+    }
+  } else {
+    return null
+  }
+
+  // Format as YYYY-MM-DD local
+  const y = next.getFullYear()
+  const m = String(next.getMonth() + 1).padStart(2, '0')
+  const d = String(next.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 // ── Smart Client Suggestion ───────────────────────────────
 function getRecentClient() {
   const recent = state.tasks.filter(t => t.accountName).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -140,6 +193,7 @@ function mapTaskFromDB(r) {
     meetingNoteId: r.meeting_note_id,
     gcalEventId: r.gcal_event_id || null,
     sortOrder: r.sort_order ?? 0,
+    recurrence: r.recurrence || null,
     createdAt: r.created_at, updatedAt: r.updated_at,
   }
 }
@@ -156,6 +210,7 @@ function mapTaskToDB(t) {
     meeting_note_id: t.meetingNoteId || null,
     gcal_event_id: t.gcalEventId || null,
     sort_order: t.sortOrder ?? 0,
+    recurrence: t.recurrence || null,
     created_at: t.createdAt, updated_at: t.updatedAt,
   }
 }
@@ -305,6 +360,12 @@ function taskCardHTML(task, compact=false) {
       ${fmtTime(task.timeBlockStart)}${task.timeBlockEnd?'–'+fmtTime(task.timeBlockEnd):''}
     </span>` : ''
 
+  const recMeta = task.recurrence ? `
+    <span class="recurrence-badge" title="Tarea recurrente">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      ${recurrenceLabel(task.recurrence)}
+    </span>` : ''
+
   const chevron = `<svg class="badge-chevron" width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9l6 6 6-6"/></svg>`
   const statusBadgeEl = !compact
     ? `<span class="badge badge-${task.status.toLowerCase()}" data-action="status" data-task-id="${task.id}">${STATUS_LABELS[task.status]}${chevron}</span>`
@@ -326,7 +387,7 @@ function taskCardHTML(task, compact=false) {
         ${!compact && task.description ? `<p class="task-card-desc">${task.description}</p>` : ''}
         ${!compact && task.subtasks?.length ? `<div class="subtask-progress"><div class="subtask-bar" style="width:${Math.round(task.subtasks.filter(s=>s.done).length/task.subtasks.length*100)}%"></div><span class="subtask-count">${task.subtasks.filter(s=>s.done).length}/${task.subtasks.length} subtareas</span></div>` : ''}
         <div class="task-card-footer">
-          <div class="task-card-meta">${dueMeta}${timeMeta}</div>
+          <div class="task-card-meta">${dueMeta}${timeMeta}${recMeta}</div>
           <div class="task-card-actions">
             ${rescheduleBtn}
             <button class="task-check ${isDone?'checked':''}" data-action="check" data-task-id="${task.id}" title="${isDone?'Marcar como pendiente':'Marcar como listo'}">
@@ -975,6 +1036,16 @@ function openModal(task, defaults={}) {
   document.getElementById('f-block-start').value  = toInputDateTime(task?.timeBlockStart)
   document.getElementById('f-block-end').value    = toInputDateTime(task?.timeBlockEnd)
 
+  // Recurrence
+  const rec = task?.recurrence || null
+  document.getElementById('f-recurrence').value = rec?.type || 'none'
+  const daysWrap = document.getElementById('f-recurrence-days')
+  daysWrap.classList.toggle('hidden', rec?.type !== 'weekly')
+  daysWrap.querySelectorAll('.rec-day-chip').forEach(chip => {
+    const d = parseInt(chip.dataset.recDay)
+    chip.classList.toggle('active', !!rec?.daysOfWeek?.includes(d))
+  })
+
   // Subtasks
   const subtasks = task?.subtasks || []
   renderSubtaskList(subtasks)
@@ -1040,6 +1111,7 @@ function saveModal() {
     timeBlockEnd:  be ? new Date(be).toISOString() : null,
     subtasks:      getModalSubtasks(),
     meetingNoteId: state.modalDefaults.meetingNoteId || state.modalTask?.meetingNoteId || null,
+    recurrence:    getModalRecurrence(),
   }
   if (state.modalTask) {
     updateTask(state.modalTask.id, data)
@@ -1091,6 +1163,18 @@ document.addEventListener('click', e => {
       // Animate check
       checkBtn.classList.add('anim-pop')
       if (!wasDone && card) card.classList.add('anim-done')
+
+      // Recurring task: advance to next occurrence instead of marking done
+      if (!wasDone && task.recurrence) {
+        const nextDate = getNextOccurrence(task)
+        if (nextDate) {
+          updateTask(taskId, { dueDate: nextDate, status: 'TODO' })
+          toast(`Repetida — próxima: ${fmtDate(nextDate)}`)
+          setTimeout(() => renderView(state.currentView), 350)
+          return
+        }
+      }
+
       updateTask(taskId, { status: wasDone ? 'TODO' : 'DONE' })
       if (!wasDone) toast('Tarea completada')
       setTimeout(() => {
@@ -1365,6 +1449,15 @@ document.getElementById('f-client').addEventListener('change', function() {
   const other = document.getElementById('f-client-other')
   other.style.display = this.value === '__other__' ? '' : 'none'
   if (this.value === '__other__') other.focus()
+})
+
+document.getElementById('f-recurrence').addEventListener('change', function() {
+  document.getElementById('f-recurrence-days').classList.toggle('hidden', this.value !== 'weekly')
+})
+
+document.getElementById('f-recurrence-days').addEventListener('click', e => {
+  const chip = e.target.closest('.rec-day-chip')
+  if (chip) chip.classList.toggle('active')
 })
 
 // ── Meeting auto-save ─────────────────────────────────────

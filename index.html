@@ -312,6 +312,24 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">Recurrencia</label>
+          <select id="f-recurrence" class="input-base">
+            <option value="none">Sin recurrencia</option>
+            <option value="daily">Todos los días</option>
+            <option value="weekly">Días específicos de la semana</option>
+            <option value="monthly">Mensual</option>
+          </select>
+          <div id="f-recurrence-days" class="recurrence-days hidden">
+            <button type="button" class="rec-day-chip" data-rec-day="1">L</button>
+            <button type="button" class="rec-day-chip" data-rec-day="2">M</button>
+            <button type="button" class="rec-day-chip" data-rec-day="3">X</button>
+            <button type="button" class="rec-day-chip" data-rec-day="4">J</button>
+            <button type="button" class="rec-day-chip" data-rec-day="5">V</button>
+            <button type="button" class="rec-day-chip" data-rec-day="6">S</button>
+            <button type="button" class="rec-day-chip" data-rec-day="0">D</button>
+          </div>
+        </div>
+        <div class="form-group">
           <label class="form-label">Subtareas</label>
           <div id="f-subtasks-list"></div>
           <div class="subtask-add-row">
