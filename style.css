@@ -1770,17 +1770,18 @@ select.input-base {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.75rem 1.125rem;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
   border-radius: var(--r-md);
   background: var(--bg-elevated);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--text-1);
   animation: toastIn 0.35s var(--t-spring);
-  max-width: 360px;
+  min-width: 240px;
+  max-width: 400px;
 }
 .toast.toast-out { animation: toastOut 0.25s ease forwards; }
 .toast-icon { flex-shrink: 0; }
