@@ -259,6 +259,37 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
       </section>
 
     </main>
+
+    <!-- ═══════════════ RIGHT PANEL ═══════════════ -->
+    <aside class="right-panel" id="right-panel">
+      <button class="btn-primary rp-new-task" id="rp-new-task">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nueva tarea
+      </button>
+
+      <div class="rp-section rp-mini-cal-section">
+        <div class="rp-section-header">
+          <span class="rp-section-title">Esta semana</span>
+        </div>
+        <div id="rp-mini-cal" class="rp-mini-cal"></div>
+      </div>
+
+      <div class="rp-section">
+        <div class="rp-section-header">
+          <span class="rp-section-title">Hoy</span>
+          <span class="rp-section-count" id="rp-today-count">0</span>
+        </div>
+        <div id="rp-today-list" class="rp-list"></div>
+      </div>
+
+      <div class="rp-section">
+        <div class="rp-section-header">
+          <span class="rp-section-title">Próximas</span>
+          <span class="rp-section-count" id="rp-upcoming-count">0</span>
+        </div>
+        <div id="rp-upcoming-list" class="rp-list"></div>
+      </div>
+    </aside>
   </div>
 
   <!-- ═══════════════ TASK MODAL ═══════════════ -->
@@ -288,29 +319,6 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
           <label class="form-label">URL de referencia</label>
           <input id="f-url" class="input-base" type="url" placeholder="https://..." autocomplete="off" />
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Estado</label>
-            <select id="f-status" class="input-base">
-              <option value="TODO">Por Hacer</option>
-              <option value="IN_PROGRESS">En Progreso</option>
-              <option value="REVIEW">En Revisión</option>
-
-              <option value="DONE">Listo</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Fecha límite</label>
-            <input id="f-due" class="input-base" type="date" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Bloque de tiempo</label>
-          <div class="form-row">
-            <input id="f-block-start" class="input-base" type="datetime-local" />
-            <input id="f-block-end" class="input-base" type="datetime-local" />
-          </div>
-        </div>
         <div class="form-group">
           <label class="form-label">Recurrencia</label>
           <select id="f-recurrence" class="input-base">
@@ -327,6 +335,28 @@ Tip: selecciona cualquier fragmento de texto y haz clic en 'Crear tarea' para co
             <button type="button" class="rec-day-chip" data-rec-day="5">V</button>
             <button type="button" class="rec-day-chip" data-rec-day="6">S</button>
             <button type="button" class="rec-day-chip" data-rec-day="0">D</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select id="f-status" class="input-base">
+              <option value="TODO">Por Hacer</option>
+              <option value="IN_PROGRESS">En Progreso</option>
+              <option value="REVIEW">En Revisión</option>
+              <option value="DONE">Listo</option>
+            </select>
+          </div>
+          <div class="form-group" id="f-due-group">
+            <label class="form-label">Fecha límite</label>
+            <input id="f-due" class="input-base" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bloque de tiempo</label>
+          <div class="form-row">
+            <input id="f-block-start" class="input-base" type="datetime-local" />
+            <input id="f-block-end" class="input-base" type="datetime-local" />
           </div>
         </div>
         <div class="form-group">

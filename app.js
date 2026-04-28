@@ -303,6 +303,9 @@ function navigate(view) {
   const target = document.getElementById('view-'+view)
   if (target) { target.classList.remove('hidden'); target.classList.add('animate-in') }
   document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active', a.dataset.view===view))
+  // Hide right panel on calendar, kanban, dashboard, reuniones
+  const hidePanelOn = ['calendario', 'kanban', 'dashboard', 'reuniones']
+  document.getElementById('right-panel')?.classList.toggle('hidden-panel', hidePanelOn.includes(view))
   renderView(view)
   // Remove animate-in after animation completes so re-renders don't re-trigger
   setTimeout(() => target?.classList.remove('animate-in'), 300)
@@ -318,6 +321,7 @@ function renderView(view) {
   if (view==='vencidas')   renderVencidas()
   updateOverdueBadge()
   renderOverdueAlert()
+  renderRightPanel()
 }
 
 function updateOverdueBadge() {
@@ -1045,6 +1049,8 @@ function openModal(task, defaults={}) {
     const d = parseInt(chip.dataset.recDay)
     chip.classList.toggle('active', !!rec?.daysOfWeek?.includes(d))
   })
+  // Hide due date when recurrence is set
+  document.getElementById('f-due-group').classList.toggle('hidden', !!rec)
 
   // Subtasks
   const subtasks = task?.subtasks || []
@@ -1112,6 +1118,31 @@ function saveModal() {
     subtasks:      getModalSubtasks(),
     meetingNoteId: state.modalDefaults.meetingNoteId || state.modalTask?.meetingNoteId || null,
     recurrence:    getModalRecurrence(),
+  }
+  // If recurrence set, dueDate is the first/next occurrence
+  if (data.recurrence) {
+    const existingDue = state.modalTask?.dueDate
+    if (!existingDue || (state.modalTask?.recurrence?.type !== data.recurrence.type) ||
+        (data.recurrence.type === 'weekly' && JSON.stringify(state.modalTask?.recurrence?.daysOfWeek) !== JSON.stringify(data.recurrence.daysOfWeek))) {
+      // Recurrence changed or new — find first matching occurrence from today
+      const t = today()
+      if (data.recurrence.type === 'daily') {
+        data.dueDate = t.toISOString().slice(0,10)
+      } else if (data.recurrence.type === 'monthly') {
+        data.dueDate = t.toISOString().slice(0,10)
+      } else if (data.recurrence.type === 'weekly' && data.recurrence.daysOfWeek?.length) {
+        // Find next day from today (inclusive) that matches
+        const cur = new Date(t)
+        for (let i = 0; i < 7; i++) {
+          if (data.recurrence.daysOfWeek.includes(cur.getDay())) break
+          cur.setDate(cur.getDate() + 1)
+        }
+        const y = cur.getFullYear(), m = String(cur.getMonth()+1).padStart(2,'0'), d = String(cur.getDate()).padStart(2,'0')
+        data.dueDate = `${y}-${m}-${d}`
+      }
+    } else {
+      data.dueDate = existingDue
+    }
   }
   if (state.modalTask) {
     updateTask(state.modalTask.id, data)
@@ -1453,6 +1484,8 @@ document.getElementById('f-client').addEventListener('change', function() {
 
 document.getElementById('f-recurrence').addEventListener('change', function() {
   document.getElementById('f-recurrence-days').classList.toggle('hidden', this.value !== 'weekly')
+  // Hide due date field when recurrence is set
+  document.getElementById('f-due-group').classList.toggle('hidden', this.value !== 'none')
 })
 
 document.getElementById('f-recurrence-days').addEventListener('click', e => {
@@ -2227,6 +2260,170 @@ document.addEventListener('keydown', e => {
     _searchInput.focus()
   }
 })
+
+// ── Right Panel ───────────────────────────────────────────
+const RP_DOW = ['D','L','M','X','J','V','S']
+
+function renderRightPanel() {
+  const panel = document.getElementById('right-panel')
+  if (!panel || panel.classList.contains('hidden-panel')) return
+
+  renderRPMiniCal()
+  renderRPToday()
+  renderRPUpcoming()
+}
+
+function renderRPMiniCal() {
+  const miniCal = document.getElementById('rp-mini-cal')
+  if (!miniCal) return
+
+  const t = today()
+  const dow = t.getDay()
+  // Start on Monday
+  const startOffset = dow === 0 ? -6 : 1 - dow
+  const start = new Date(t); start.setDate(t.getDate() + startOffset)
+
+  let html = ''
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i)
+    const isToday_ = sameDay(d, t)
+    const dKey = d.toISOString().slice(0,10)
+    const hasTasks = state.tasks.some(task => {
+      if (task.dueDate && sameDay(parseLocalDate(task.dueDate), d)) return true
+      if (task.timeBlockStart && sameDay(new Date(task.timeBlockStart), d)) return true
+      return false
+    })
+    html += `<div class="rp-mini-cal-cell ${isToday_?'today':''} ${hasTasks?'has-tasks':''}" data-rp-date="${dKey}" title="${d.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long'})}">
+      <span class="rp-cal-dow">${RP_DOW[d.getDay()]}</span>
+      <span>${d.getDate()}</span>
+    </div>`
+  }
+  miniCal.innerHTML = html
+}
+
+function renderRPToday() {
+  const list = document.getElementById('rp-today-list')
+  const count = document.getElementById('rp-today-count')
+  if (!list) return
+
+  const t = today()
+  const blocks = state.tasks
+    .filter(task => task.timeBlockStart && sameDay(new Date(task.timeBlockStart), t))
+    .sort((a,b) => new Date(a.timeBlockStart) - new Date(b.timeBlockStart))
+  const due = state.tasks
+    .filter(task => task.dueDate && sameDay(parseLocalDate(task.dueDate), t) && !blocks.includes(task) && task.status !== 'DONE')
+
+  const items = [...blocks, ...due]
+  count.textContent = items.length
+
+  if (!items.length) {
+    list.innerHTML = '<div class="rp-empty">Sin tareas para hoy</div>'
+    return
+  }
+
+  list.innerHTML = items.map(task => {
+    const meta = task.timeBlockStart
+      ? `<span class="meta-time">${fmtTime(task.timeBlockStart)}${task.timeBlockEnd?'–'+fmtTime(task.timeBlockEnd):''}</span>`
+      : `<span class="meta-today">Vence hoy</span>`
+    const isDone = task.status === 'DONE'
+    return `<div class="rp-task" data-rp-task="${task.id}">
+      <button class="rp-task-check ${isDone?'checked':''}" data-rp-check="${task.id}">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <div class="rp-task-info">
+        <div class="rp-task-title">${task.title}</div>
+        <div class="rp-task-meta">${meta}${task.accountName?` · ${task.accountName}`:''}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function renderRPUpcoming() {
+  const list = document.getElementById('rp-upcoming-list')
+  const count = document.getElementById('rp-upcoming-count')
+  if (!list) return
+
+  const t = today()
+  const sevenDays = new Date(t); sevenDays.setDate(t.getDate() + 7)
+  const upcoming = state.tasks
+    .filter(task => {
+      if (task.status === 'DONE') return false
+      if (!task.dueDate) return false
+      const d = parseLocalDate(task.dueDate)
+      return d > t && d <= sevenDays && !sameDay(d, t)
+    })
+    .sort((a,b) => parseLocalDate(a.dueDate) - parseLocalDate(b.dueDate))
+    .slice(0, 6)
+
+  count.textContent = upcoming.length
+
+  if (!upcoming.length) {
+    list.innerHTML = '<div class="rp-empty">Nada próximo</div>'
+    return
+  }
+
+  list.innerHTML = upcoming.map(task => {
+    const d = parseLocalDate(task.dueDate)
+    const dayDiff = Math.round((d - t) / 86400000)
+    const dayLabel = dayDiff === 1 ? 'Mañana' : `En ${dayDiff} días`
+    return `<div class="rp-task" data-rp-task="${task.id}">
+      <button class="rp-task-check" data-rp-check="${task.id}">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <div class="rp-task-info">
+        <div class="rp-task-title">${task.title}</div>
+        <div class="rp-task-meta"><span style="color:var(--text-2)">${dayLabel}</span> · ${fmtDate(task.dueDate)}${task.accountName?` · ${task.accountName}`:''}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// Right panel event handlers
+document.addEventListener('click', e => {
+  // Click task → open modal
+  const taskItem = e.target.closest('[data-rp-task]')
+  if (taskItem && !e.target.closest('[data-rp-check]')) {
+    const task = state.tasks.find(t => t.id === taskItem.dataset.rpTask)
+    if (task) openModal(task)
+    return
+  }
+
+  // Check task
+  const check = e.target.closest('[data-rp-check]')
+  if (check) {
+    e.stopPropagation()
+    const taskId = check.dataset.rpCheck
+    const task = state.tasks.find(t => t.id === taskId)
+    if (!task) return
+    const wasDone = task.status === 'DONE'
+    if (!wasDone && task.recurrence) {
+      const nextDate = getNextOccurrence(task)
+      if (nextDate) {
+        updateTask(taskId, { dueDate: nextDate, status: 'TODO' })
+        toast(`Repetida — próxima: ${fmtDate(nextDate)}`)
+        renderView(state.currentView)
+        return
+      }
+    }
+    updateTask(taskId, { status: wasDone ? 'TODO' : 'DONE' })
+    if (!wasDone) toast('Tarea completada')
+    renderView(state.currentView)
+    return
+  }
+
+  // Mini cal cell → navigate to calendar
+  const calCell = e.target.closest('[data-rp-date]')
+  if (calCell) {
+    const d = parseLocalDate(calCell.dataset.rpDate)
+    state.calDate = d
+    state.calSelected = d
+    navigate('calendario')
+    return
+  }
+})
+
+// New task button in right panel
+document.getElementById('rp-new-task')?.addEventListener('click', () => openModal(null))
 
 // ── Voice Task ────────────────────────────────────────────
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
