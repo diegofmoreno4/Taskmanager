@@ -1943,6 +1943,34 @@ async function gcalFetchWithToken(token, path, options = {}) {
   return res.json()
 }
 
+// Refresh a single account's token (sequentially safe)
+async function refreshGCalToken(accountIndex) {
+  if (!_gcalTokenClient) return false
+  const acct = state.gcalAccounts[accountIndex]
+  if (!acct) return false
+  return new Promise((resolve) => {
+    let resolved = false
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(false) }
+    }, 8000)
+    _gcalTokenClient.callback = (resp) => {
+      if (resolved) return
+      resolved = true
+      clearTimeout(timer)
+      if (resp.error || !resp.access_token) { resolve(false); return }
+      state.gcalAccounts[accountIndex].token = resp.access_token
+      state.gcalAccounts[accountIndex]._expired = false
+      saveGCalAccounts()
+      resolve(true)
+    }
+    try {
+      _gcalTokenClient.requestAccessToken({ prompt: '', login_hint: acct.email })
+    } catch (err) {
+      if (!resolved) { resolved = true; clearTimeout(timer); resolve(false) }
+    }
+  })
+}
+
 async function loadGCalEvents() {
   if (!state.gcalAccounts.length) return
   const d = state.calDate
@@ -1958,39 +1986,39 @@ async function loadGCalEvents() {
   }
   const params = `?timeMin=${encodeURIComponent(tMin.toISOString())}&timeMax=${encodeURIComponent(tMax.toISOString())}&singleEvents=true&orderBy=startTime&maxResults=250`
 
-  const results = await Promise.all(state.gcalAccounts.map(async (acct, i) => {
-    const data = await gcalFetchWithToken(acct.token, `/calendars/primary/events${params}`)
+  const allEvents = []
+  let anyExpired = false
+
+  // Process accounts sequentially (the Google token client can only handle one refresh at a time)
+  for (let i = 0; i < state.gcalAccounts.length; i++) {
+    const acct = state.gcalAccounts[i]
+    let data = await gcalFetchWithToken(acct.token, `/calendars/primary/events${params}`)
+
     if (data?._expired) {
-      // Auto-refresh: silently request a new token
-      if (_gcalTokenClient) {
-        try {
-          await new Promise((resolve, reject) => {
-            _gcalTokenClient.callback = (resp) => {
-              if (resp.error) { reject(resp.error); return }
-              state.gcalAccounts[i].token = resp.access_token
-              state.gcalAccounts[i]._expired = false
-              saveGCalAccounts()
-              resolve()
-            }
-            _gcalTokenClient.requestAccessToken({ prompt: '', login_hint: acct.email })
-          })
-          // Retry with new token
-          const retry = await gcalFetchWithToken(state.gcalAccounts[i].token, `/calendars/primary/events${params}`)
-          if (retry && !retry._expired) {
-            return (retry?.items || []).map(e => ({ ...e, _gcalAccount: acct.email }))
-          }
-        } catch(err) { console.warn('GCal auto-refresh failed:', err) }
+      // Try to refresh and retry
+      const ok = await refreshGCalToken(i)
+      if (ok) {
+        data = await gcalFetchWithToken(state.gcalAccounts[i].token, `/calendars/primary/events${params}`)
       }
-      state.gcalAccounts[i]._expired = true
-      saveGCalAccounts()
-      renderGCalAccounts()
-      toast('Sesión de Google Calendar expirada — reconecta en Configuración', 'error')
-      return []
     }
+
+    if (data?._expired || !data) {
+      state.gcalAccounts[i]._expired = true
+      anyExpired = true
+      continue
+    }
+
     state.gcalAccounts[i]._expired = false
-    return (data?.items || []).map(e => ({ ...e, _gcalAccount: acct.email }))
-  }))
-  state.gcalEvents = results.flat()
+    allEvents.push(...(data.items || []).map(e => ({ ...e, _gcalAccount: acct.email })))
+  }
+
+  if (anyExpired) {
+    saveGCalAccounts()
+    renderGCalAccounts()
+    toast('Una o más cuentas de Google necesitan reconectarse', 'error')
+  }
+
+  state.gcalEvents = allEvents
 }
 
 async function createGCalEvent(task) {
